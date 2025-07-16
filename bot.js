@@ -15,8 +15,8 @@ const client = new Client({
 const token = process.env.DISCORD_TOKEN; // use Replit secret
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
-  const roleNameToWatch = 'test role';
-  const logChannelId = '1388622781482139688';
+  const roleNameToWatch = 'UNRECRUITED';
+  const logChannelId = '1395185872126738622';
 
   const role = newMember.guild.roles.cache.find(r => r.name === roleNameToWatch);
   if (!role) return;
