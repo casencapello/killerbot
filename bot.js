@@ -15,26 +15,40 @@ const client = new Client({
 const token = process.env.DISCORD_TOKEN; // use Replit secret
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  console.log('guildMemberUpdate event fired');
+
   const roleNameToWatch = 'UNRECRUITED';
   const logChannelId = '1395185872126738622';
 
   const role = newMember.guild.roles.cache.find(r => r.name === roleNameToWatch);
-  if (!role) return;
+  if (!role) {
+    console.log(`Role "${roleNameToWatch}" not found`);
+    return;
+  }
 
   const hadRoleBefore = oldMember.roles.cache.has(role.id);
   const hasRoleNow = newMember.roles.cache.has(role.id);
 
-  if (hadRoleBefore === hasRoleNow) return;
+  console.log(`Had role before: ${hadRoleBefore}, Has role now: ${hasRoleNow}`);
+
+  if (hadRoleBefore === hasRoleNow) {
+    console.log('Role did not change');
+    return;
+  }
 
   const logChannel = newMember.guild.channels.cache.get(logChannelId);
-  if (!logChannel || !logChannel.isTextBased()) return;
+  if (!logChannel || !logChannel.isTextBased()) {
+    console.log('Log channel not found or not text-based');
+    return;
+  }
 
   if (!hadRoleBefore && hasRoleNow) {
     logChannel.send(
-      `✅ ${`<@${newMember.id}>`} is unrecruited, any setter can recruit them. <@&1395170167763501167>`
+      `✅ <@${newMember.id}> is unrecruited, any setter can recruit them. <@&1395170167763501167>`
     );
   }
-}); // <-- This was missing!
+});
+
 
 
 
