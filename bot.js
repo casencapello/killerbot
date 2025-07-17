@@ -81,7 +81,7 @@ client.on('messageCreate', async message => {
   try {
     // Delete previous sticky message
     if (lastStickyMessageId) {
-      const oldMsg = await message.channel.messages.fetch(lastStickyMessageId).catch(() => null);
+      const oldMsg = await message.channel.messages.fetch(lastStickyMessageId, { force: true }).catch(() => null);
       if (oldMsg) await oldMsg.delete().catch(() => {});
     }
 
