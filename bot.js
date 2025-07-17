@@ -41,7 +41,18 @@ const dailyGoals = [
 ];
 
 client.once('ready', () => {
-  console.log(`✅ Bot is online as ${client.user.tag}`);
+console.log(`✅ Bot is online as ${client.user.tag}`);
+
+  const channel = client.channels.cache.get(STICKY_CHANNEL_ID);
+  if (channel && channel.isTextBased()) {
+    try {
+      const msg = await channel.send(STICKY_MESSAGE_CONTENT);
+      lastStickyMessageId = msg.id;
+      console.log('Sticky message posted on startup');
+    } catch (err) {
+      console.error('Error sending sticky message on startup:', err);
+    }
+  }
 });
 
 client.on('guildMemberAdd', async member => {
