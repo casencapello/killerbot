@@ -19,6 +19,11 @@ const UNRECRUITED_ROLE = 'UNRECRUITED';
 const SETTER_ROLE_ID = '1395170167763501167';
 const REPLIT_URL = process.env.REPLIT_URL || 'https://2c173668-379d-4ce9-8eff-6bec421363ec-00-o5g38mg2m41i.spock.replit.dev/';
 const PORT = process.env.PORT || 3001;
+const STICKY_CHANNEL_ID = '1395185872126738622';
+const STICKY_MESSAGE_CONTENT = '📌 SETTERS, PLEASE REACT WITH 👍 TO THE MESSAGES OF LEADS YOU RECRUITED. THIS IS NOT OPTIONAL.';
+
+let lastStickyMessageId = null;
+
 
 const scheduledEvents = [];
 const inactiveTimers = new Map();
@@ -56,6 +61,26 @@ client.on('guildMemberAdd', async member => {
     }
   }, 15000);
 });
+// === Sticky Message Logic ===
+client.on('messageCreate', async message => {
+  if (message.channel.id !== STICKY_CHANNEL_ID) return;
+  if (message.author.bot) return;
+
+  try {
+    // Delete previous sticky message
+    if (lastStickyMessageId) {
+      const oldMsg = await message.channel.messages.fetch(lastStickyMessageId).catch(() => null);
+      if (oldMsg) await oldMsg.delete().catch(() => {});
+    }
+
+    // Re-send sticky message
+    const newSticky = await message.channel.send(STICKY_MESSAGE_CONTENT);
+    lastStickyMessageId = newSticky.id;
+  } catch (err) {
+    console.error('Sticky message error:', err);
+  }
+});
+
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
   const role = newMember.guild.roles.cache.find(r => r.name === UNRECRUITED_ROLE);
