@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, PermissionsBitField } = require('discord.js')
 const cron = require('node-cron');
 const fetch = require('node-fetch');
 const express = require('express');
+const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
 // Discord client setup
 const client = new Client({ 
   intents: [
@@ -49,12 +50,28 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
   }
 });
 
+client.once('ready', () => {
+  console.log(`✅ Bot is online as ${client.user.tag}`);
+});
+
+client.on('guildMemberAdd', async member => {
+  const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
+  if (!channel || !channel.isTextBased()) return;
+
+  const welcomeMessage = await channel.send(`👋 Welcome <@${member.id}>!`);
+
+  // Delete the message after 10 seconds
+  setTimeout(() => {
+    welcomeMessage.delete().catch(() => {});
+  }, 10000);
+});
+
 
 
 
 // Setup Express keep-alive server
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const REPLIT_URL = process.env.REPLIT_URL || 'https://2c173668-379d-4ce9-8eff-6bec421363ec-00-o5g38mg2m41i.spock.replit.dev/';
 
 app.get('/', (req, res) => {
