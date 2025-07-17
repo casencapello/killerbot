@@ -40,8 +40,8 @@ const dailyGoals = [
   "Find a sales accountability partner and check in today."
 ];
 
-client.once('ready', () => {
-console.log(`✅ Bot is online as ${client.user.tag}`);
+client.once('ready', async () => {  // <-- add async here
+  console.log(`✅ Bot is online as ${client.user.tag}`);
 
   const channel = client.channels.cache.get(STICKY_CHANNEL_ID);
   if (channel && channel.isTextBased()) {
@@ -54,6 +54,7 @@ console.log(`✅ Bot is online as ${client.user.tag}`);
     }
   }
 });
+
 
 client.on('guildMemberAdd', async member => {
   const welcomeChannel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
