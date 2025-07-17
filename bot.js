@@ -2,8 +2,7 @@ const { Client, GatewayIntentBits, PermissionsBitField } = require('discord.js')
 const cron = require('node-cron');
 const fetch = require('node-fetch');
 const express = require('express');
-const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
-// Discord client setup
+
 const client = new Client({ 
   intents: [
     GatewayIntentBits.Guilds, 
@@ -13,104 +12,13 @@ const client = new Client({
   ] 
 });
 
-const token = process.env.DISCORD_TOKEN; // use Replit secret
-
-client.on('guildMemberUpdate', async (oldMember, newMember) => {
-  console.log('guildMemberUpdate event fired');
-
-  const roleNameToWatch = 'UNRECRUITED';
-  const logChannelId = '1395185872126738622';
-
-  const role = newMember.guild.roles.cache.find(r => r.name === roleNameToWatch);
-  if (!role) {
-    console.log(`Role "${roleNameToWatch}" not found`);
-    return;
-  }
-
-  const hadRoleBefore = oldMember.roles.cache.has(role.id);
-  const hasRoleNow = newMember.roles.cache.has(role.id);
-
-  console.log(`Had role before: ${hadRoleBefore}, Has role now: ${hasRoleNow}`);
-
-  if (hadRoleBefore === hasRoleNow) {
-    console.log('Role did not change');
-    return;
-  }
-
-  const logChannel = newMember.guild.channels.cache.get(logChannelId);
-  if (!logChannel || !logChannel.isTextBased()) {
-    console.log('Log channel not found or not text-based');
-    return;
-  }
-
-  if (!hadRoleBefore && hasRoleNow) {
-    logChannel.send(
-      `✅ <@${newMember.id}> is unrecruited, any setter can recruit them. <@&1395170167763501167>`
-    );
-  }
-});
-
-client.once('ready', () => {
-  console.log(`✅ Bot is online as ${client.user.tag}`);
-});
-
-client.on('guildMemberAdd', async member => {
-  const WELCOME_CHANNEL_ID = '1395223010926919681'; // Replace with your actual channel ID
-  const LOG_CHANNEL_ID = '1395185872126738622';
-  const ROLE_NAME = 'UNRECRUITED';
-
-  const welcomeChannel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
-  if (welcomeChannel && welcomeChannel.isTextBased()) {
-    const welcomeMessage = await welcomeChannel.send(`👋 Welcome <@${member.id}>!`);
-
-    // Delete the message after 100 seconds
-    setTimeout(() => {
-      welcomeMessage.delete().catch(() => {});
-    }, 100000);
-  }
-
-  // Wait 15 seconds before checking their roles (to allow onboarding to finish)
-  setTimeout(() => {
-    const role = member.guild.roles.cache.find(r => r.name === ROLE_NAME);
-    if (!role) return;
-
-    if (member.roles.cache.has(role.id)) {
-      const logChannel = member.guild.channels.cache.get(LOG_CHANNEL_ID);
-      if (logChannel && logChannel.isTextBased()) {
-        logChannel.send(
-          `✅ <@${member.id}> is unrecruited, any setter can recruit them. <@&1395170167763501167>`
-        );
-      }
-    }
-  }, 15000);
-});
-
-
-
-
-// Setup Express keep-alive server
-const app = express();
-const PORT = process.env.PORT || 3001;
+const token = process.env.DISCORD_TOKEN;
+const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID;
+const LOG_CHANNEL_ID = '1395185872126738622';
+const UNRECRUITED_ROLE = 'UNRECRUITED';
+const SETTER_ROLE_ID = '1395170167763501167';
 const REPLIT_URL = process.env.REPLIT_URL || 'https://2c173668-379d-4ce9-8eff-6bec421363ec-00-o5g38mg2m41i.spock.replit.dev/';
-
-app.get('/', (req, res) => {
-  res.send('Bot is alive!');
-});
-
-app.listen(PORT, () => {
-  console.log(`Keep-alive server running on port ${PORT}`);
-});
-
-setInterval(async () => {
-  try {
-    await fetch(REPLIT_URL);
-    console.log('Pinged self to stay awake');
-  } catch (err) {
-    console.error('Failed to ping self:', err);
-  }
-}, 5 * 60 * 1000); // 30 minutes ping
-
-
+const PORT = process.env.PORT || 3001;
 
 const scheduledEvents = [];
 const inactiveTimers = new Map();
@@ -124,162 +32,148 @@ const dailyGoals = [
   "Listen to a podcast about overcoming sales objections.",
   "Ask a past client for a referral.",
   "Watch a motivational video to fire up your mindset.",
-  "Find a sales accountability partner and check in today.",
+  "Find a sales accountability partner and check in today."
 ];
 
 client.once('ready', () => {
-  console.log(`✅ Logged in as ${client.user.tag}`);
+  console.log(`✅ Bot is online as ${client.user.tag}`);
+});
+
+client.on('guildMemberAdd', async member => {
+  const welcomeChannel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
+  if (welcomeChannel?.isTextBased()) {
+    const welcomeMessage = await welcomeChannel.send(`👋 Welcome <@${member.id}>!`);
+    setTimeout(() => welcomeMessage.delete().catch(() => {}), 10000);
+  }
+
+  setTimeout(() => {
+    const role = member.guild.roles.cache.find(r => r.name === UNRECRUITED_ROLE);
+    if (role && member.roles.cache.has(role.id)) {
+      const logChannel = member.guild.channels.cache.get(LOG_CHANNEL_ID);
+      if (logChannel?.isTextBased()) {
+        logChannel.send(`✅ <@${member.id}> is unrecruited, any setter can recruit them. <@&${SETTER_ROLE_ID}>`);
+      }
+    }
+  }, 15000);
+});
+
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  const role = newMember.guild.roles.cache.find(r => r.name === UNRECRUITED_ROLE);
+  if (!role) return;
+
+  const hadRoleBefore = oldMember.roles.cache.has(role.id);
+  const hasRoleNow = newMember.roles.cache.has(role.id);
+
+  if (hadRoleBefore === hasRoleNow) return;
+
+  const logChannel = newMember.guild.channels.cache.get(LOG_CHANNEL_ID);
+  if (logChannel?.isTextBased() && !hadRoleBefore && hasRoleNow) {
+    logChannel.send(`✅ <@${newMember.id}> is unrecruited, any setter can recruit them. <@&${SETTER_ROLE_ID}>`);
+  }
 });
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === 'dailygoal') {
-    const goal = dailyGoals[Math.floor(Math.random() * dailyGoals.length)];
-    await interaction.reply(`🎯 **Your daily goal:** ${goal}`);
-  }
-
-  if (interaction.commandName === 'schedule') {
-    const date = interaction.options.getString('date');
-    const time = interaction.options.getString('time');
-    const description = interaction.options.getString('event');
-    const ping = interaction.options.getBoolean('ping') ?? false;
-
-    const eventDateTime = new Date(`${date}T${time}:00-06:00`);
-
-    if (isNaN(eventDateTime)) {
-      await interaction.reply("⚠️ Invalid date or time. Use YYYY-MM-DD and HH:mm (24hr) format, Central Time.");
-      return;
+  switch (interaction.commandName) {
+    case 'dailygoal': {
+      const goal = dailyGoals[Math.floor(Math.random() * dailyGoals.length)];
+      await interaction.reply(`🎯 **Your daily goal:** ${goal}`);
+      break;
     }
+    case 'schedule': {
+      const date = interaction.options.getString('date');
+      const time = interaction.options.getString('time');
+      const description = interaction.options.getString('event');
+      const ping = interaction.options.getBoolean('ping') ?? false;
+      const eventDateTime = new Date(`${date}T${time}:00-06:00`);
 
-    const now = new Date();
-    if (eventDateTime <= now) {
-      await interaction.reply("🚫 That time is in the past. Please schedule for the future.");
-      return;
+      if (isNaN(eventDateTime)) return interaction.reply("⚠️ Invalid date or time.");
+      if (eventDateTime <= new Date()) return interaction.reply("🚫 That time is in the past.");
+
+      scheduledEvents.push({ description, eventDateTime, ping, channelId: interaction.channelId, reminded6h: false, reminded1h: false, reminded10m: false });
+      await interaction.reply(`✅ Event **${description}** scheduled for ${eventDateTime.toLocaleString('en-US', { timeZone: 'America/Chicago' })} Central Time${ping ? ' with @everyone ping' : ''}.`);
+      break;
     }
+    case 'mockstart': {
+      const user1 = interaction.options.getUser('user1');
+      const user2 = interaction.options.getUser('user2');
+      if (!user1 || !user2) return interaction.reply({ content: "⚠️ Specify two users.", flags: 1 << 6 });
 
-    scheduledEvents.push({
-      description,
-      eventDateTime,
-      ping,
-      channelId: interaction.channelId,
-      reminded6h: false,
-      reminded1h: false,
-      reminded10m: false,
-    });
-
-    await interaction.reply(`✅ Event **${description}** scheduled for ${eventDateTime.toLocaleString('en-US', { timeZone: 'America/Chicago' })} Central Time${ping ? ' with @everyone ping' : ''}.`);
-  }
-
-  if (interaction.commandName === 'mockstart') {
-    const guild = interaction.guild;
-    const user1 = interaction.options.getUser('user1');
-    const user2 = interaction.options.getUser('user2');
-
-    if (!user1 || !user2) {
-      await interaction.reply({
-        content: "⚠️ You must specify two users to start a mock conversation.",
-        flags: 1 << 6 // ephemeral flag
+      const channel = await interaction.guild.channels.create({
+        name: `mock-${user1.username}-${user2.username}`,
+        type: 0,
+        permissionOverwrites: [
+          { id: interaction.guild.roles.everyone, deny: [PermissionsBitField.Flags.ViewChannel] },
+          { id: user1.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
+          { id: user2.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
+          { id: client.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] }
+        ]
       });
-      return;
+
+      await channel.send(`${user1} and ${user2}, your mock conversation has started!`);
+      await interaction.reply({ content: `✅ Created private mock session <#${channel.id}>.`, flags: 1 << 6 });
+      inactiveTimers.set(channel.id, Date.now());
+      break;
     }
-
-    const channel = await guild.channels.create({
-      name: `mock-${user1.username}-${user2.username}`,
-      type: 0, // GUILD_TEXT
-      permissionOverwrites: [
-        {
-          id: guild.roles.everyone,
-          deny: [PermissionsBitField.Flags.ViewChannel]
-        },
-        {
-          id: user1.id,
-          allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
-        },
-        {
-          id: user2.id,
-          allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
-        },
-        {
-          id: client.user.id,
-          allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages]
-        }
-      ]
-    });
-
-    await channel.send(`${user1} and ${user2}, your mock conversation has started!`);
-    await interaction.reply({
-      content: `✅ Created private mock session <#${channel.id}> for ${user1} and ${user2}.`,
-      flags: 1 << 6 // this is the ephemeral bit flag
-    });
-
-    // Set initial last active time
-    inactiveTimers.set(channel.id, Date.now());
   }
 });
 
-// cron to check scheduled event reminders
 cron.schedule('* * * * *', () => {
   const now = new Date();
-
   scheduledEvents.forEach((event, index) => {
     const channel = client.channels.cache.get(event.channelId);
     if (!channel) return;
+    const timeUntil = event.eventDateTime - now;
 
-    const timeUntil = event.eventDateTime.getTime() - now.getTime();
+    const reminders = [
+      { threshold: 6 * 60 * 60 * 1000, flag: 'reminded6h', text: '6 hours' },
+      { threshold: 1 * 60 * 60 * 1000, flag: 'reminded1h', text: '1 hour' },
+      { threshold: 10 * 60 * 1000, flag: 'reminded10m', text: '10 minutes' }
+    ];
 
-    if (timeUntil <= 6 * 60 * 60 * 1000 && !event.reminded6h && timeUntil > 5.9 * 60 * 60 * 1000) {
-      const mention = event.ping ? '@everyone' : '';
-      channel.send(`${mention} ⏰ **Reminder**: ${event.description} starts in 6 hours!`);
-      event.reminded6h = true;
-    }
+    reminders.forEach(reminder => {
+      if (timeUntil <= reminder.threshold && !event[reminder.flag] && timeUntil > reminder.threshold - 60000) {
+        channel.send(`${event.ping ? '@everyone' : ''} ⏰ **Reminder**: ${event.description} starts in ${reminder.text}!`);
+        event[reminder.flag] = true;
+      }
+    });
 
-    if (timeUntil <= 1 * 60 * 60 * 1000 && !event.reminded1h && timeUntil > 0.9 * 60 * 60 * 1000) {
-      const mention = event.ping ? '@everyone' : '';
-      channel.send(`${mention} ⏰ **Reminder**: ${event.description} starts in 1 hour!`);
-      event.reminded1h = true;
-    }
-
-    if (timeUntil <= 10 * 60 * 1000 && !event.reminded10m && timeUntil > 9 * 60 * 1000) {
-      const mention = event.ping ? '@everyone' : '';
-      channel.send(`${mention} ⏰ **Reminder**: ${event.description} starts in 10 minutes!`);
-      event.reminded10m = true;
-    }
-
-    if (
-      event.eventDateTime.getFullYear() === now.getFullYear() &&
-      event.eventDateTime.getMonth() === now.getMonth() &&
-      event.eventDateTime.getDate() === now.getDate() &&
-      event.eventDateTime.getHours() === now.getHours() &&
-      event.eventDateTime.getMinutes() === now.getMinutes()
-    ) {
-      const mention = event.ping ? '@everyone' : '';
-      channel.send(`${mention} 📣 **Event Reminder**: ${event.description} is happening now!`);
-      scheduledEvents.splice(index, 1); // remove after announcing
+    if (Math.abs(timeUntil) < 60000) {
+      channel.send(`${event.ping ? '@everyone' : ''} 📣 **Event Reminder**: ${event.description} is happening now!`);
+      scheduledEvents.splice(index, 1);
     }
   });
 });
 
-// clear inactive mock chats every 5 min
-setInterval(async () => {
+setInterval(() => {
   const now = Date.now();
   for (const [channelId, lastActive] of inactiveTimers.entries()) {
-    if (now - lastActive > 30 * 60 * 1000) { // 30 mins
+    if (now - lastActive > 30 * 60 * 1000) {
       const channel = client.channels.cache.get(channelId);
-      if (channel) {
-        await channel.delete().catch(console.error);
-        console.log(`Deleted inactive mock session ${channel.name}`);
-      }
+      channel?.delete().then(() => console.log(`Deleted inactive mock session ${channel.name}`)).catch(console.error);
       inactiveTimers.delete(channelId);
     }
   }
 }, 5 * 60 * 1000);
 
-// Reset inactivity timer on message in mock channel
 client.on('messageCreate', message => {
   if (inactiveTimers.has(message.channel.id)) {
     inactiveTimers.set(message.channel.id, Date.now());
   }
 });
+
+const app = express();
+app.get('/', (req, res) => res.send('Bot is alive!'));
+app.listen(PORT, () => console.log(`Keep-alive server running on port ${PORT}`));
+
+setInterval(async () => {
+  try {
+    await fetch(REPLIT_URL);
+    console.log('Pinged self to stay awake');
+  } catch (err) {
+    console.error('Failed to ping self:', err);
+  }
+}, 5 * 60 * 1000);
 
 client.login(token);
