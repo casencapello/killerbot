@@ -235,13 +235,13 @@ const app = express();
 app.get('/', (req, res) => res.send('Bot is alive!'));
 app.listen(PORT, () => console.log(`Keep-alive server running on port ${PORT}`));
 
-setInterval(async () => {
-  try {
-    await fetch(REPLIT_URL);
-    console.log('Pinged self to stay awake');
-  } catch (err) {
-    console.error('Failed to ping self:', err);
-  }
-}, 5 * 60 * 1000);
+//setInterval(async () => {
+//  try {
+//    await fetch(REPLIT_URL);
+//    console.log('Pinged self to stay awake');
+//  } catch (err) {
+//    console.error('Failed to ping self:', err);
+//  }
+//}, 5 * 60 * 1000);
 
 client.login(token);
