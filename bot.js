@@ -55,15 +55,34 @@ client.once('ready', () => {
 });
 
 client.on('guildMemberAdd', async member => {
-  const channel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
-  if (!channel || !channel.isTextBased()) return;
+  const WELCOME_CHANNEL_ID = '1395223010926919681'; // Replace with your actual channel ID
+  const LOG_CHANNEL_ID = '1395185872126738622';
+  const ROLE_NAME = 'UNRECRUITED';
 
-  const welcomeMessage = await channel.send(`👋 Welcome <@${member.id}>!`);
+  const welcomeChannel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
+  if (welcomeChannel && welcomeChannel.isTextBased()) {
+    const welcomeMessage = await welcomeChannel.send(`👋 Welcome <@${member.id}>!`);
 
-  // Delete the message after 100 seconds
+    // Delete the message after 100 seconds
+    setTimeout(() => {
+      welcomeMessage.delete().catch(() => {});
+    }, 100000);
+  }
+
+  // Wait 15 seconds before checking their roles (to allow onboarding to finish)
   setTimeout(() => {
-    welcomeMessage.delete().catch(() => {});
-  }, 100000);
+    const role = member.guild.roles.cache.find(r => r.name === ROLE_NAME);
+    if (!role) return;
+
+    if (member.roles.cache.has(role.id)) {
+      const logChannel = member.guild.channels.cache.get(LOG_CHANNEL_ID);
+      if (logChannel && logChannel.isTextBased()) {
+        logChannel.send(
+          `✅ <@${member.id}> is unrecruited, any setter can recruit them. <@&1395170167763501167>`
+        );
+      }
+    }
+  }, 15000);
 });
 
 
