@@ -60,10 +60,10 @@ client.on('guildMemberAdd', async member => {
 
   const welcomeMessage = await channel.send(`👋 Welcome <@${member.id}>!`);
 
-  // Delete the message after 10 seconds
+  // Delete the message after 100 seconds
   setTimeout(() => {
     welcomeMessage.delete().catch(() => {});
-  }, 10000);
+  }, 100000);
 });
 
 
