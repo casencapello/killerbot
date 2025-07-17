@@ -24,7 +24,6 @@ const STICKY_MESSAGE_CONTENT = '📌 SETTERS, PLEASE REACT WITH 👍 TO THE MESS
 
 let lastStickyMessageId = null;
 
-
 const scheduledEvents = [];
 const inactiveTimers = new Map();
 
@@ -40,9 +39,10 @@ const dailyGoals = [
   "Find a sales accountability partner and check in today."
 ];
 
-client.once('ready', async () => {  // <-- add async here
+client.once('ready', async () => {
   console.log(`✅ Bot is online as ${client.user.tag}`);
 
+  // Send sticky message on startup
   const channel = client.channels.cache.get(STICKY_CHANNEL_ID);
   if (channel && channel.isTextBased()) {
     try {
@@ -55,6 +55,23 @@ client.once('ready', async () => {  // <-- add async here
   }
 });
 
+// Remove old sticky message & resend every 5 minutes
+cron.schedule('*/5 * * * *', async () => {
+  const channel = client.channels.cache.get(STICKY_CHANNEL_ID);
+  if (!channel || !channel.isTextBased()) return;
+
+  try {
+    if (lastStickyMessageId) {
+      const oldMsg = await channel.messages.fetch(lastStickyMessageId).catch(() => null);
+      if (oldMsg) await oldMsg.delete().catch(() => {});
+    }
+    const newSticky = await channel.send(STICKY_MESSAGE_CONTENT);
+    lastStickyMessageId = newSticky.id;
+    console.log('Sticky message updated by cron job');
+  } catch (err) {
+    console.error('Sticky message cron error:', err);
+  }
+});
 
 client.on('guildMemberAdd', async member => {
   const welcomeChannel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
@@ -73,26 +90,6 @@ client.on('guildMemberAdd', async member => {
     }
   }, 15000);
 });
-// === Sticky Message Logic ===
-client.on('messageCreate', async message => {
-  if (message.channel.id !== STICKY_CHANNEL_ID) return;
-  if (message.author.bot) return;
-
-  try {
-    // Delete previous sticky message
-    if (lastStickyMessageId) {
-      const oldMsg = await message.channel.messages.fetch(lastStickyMessageId, { force: true }).catch(() => null);
-      if (oldMsg) await oldMsg.delete().catch(() => {});
-    }
-
-    // Re-send sticky message
-    const newSticky = await message.channel.send(STICKY_MESSAGE_CONTENT);
-    lastStickyMessageId = newSticky.id;
-  } catch (err) {
-    console.error('Sticky message error:', err);
-  }
-});
-
 
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
   const role = newMember.guild.roles.cache.find(r => r.name === UNRECRUITED_ROLE);
