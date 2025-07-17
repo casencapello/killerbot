@@ -22,6 +22,7 @@ const PORT = process.env.PORT || 3001;
 const STICKY_CHANNEL_ID = '1395185872126738622';
 const STICKY_MESSAGE_CONTENT = '📌 SETTERS, PLEASE REACT WITH 👍 TO THE MESSAGES OF LEADS YOU RECRUITED. THIS IS NOT OPTIONAL.';
 
+let currentStickyMessage = null;
 let lastStickyMessageId = null;
 
 const scheduledEvents = [];
@@ -42,36 +43,69 @@ const dailyGoals = [
 client.once('ready', async () => {
   console.log(`✅ Bot is online as ${client.user.tag}`);
 
-  // Send sticky message on startup
-  const channel = client.channels.cache.get(STICKY_CHANNEL_ID);
-  if (channel && channel.isTextBased()) {
-    try {
-      const msg = await channel.send(STICKY_MESSAGE_CONTENT);
-      lastStickyMessageId = msg.id;
-      console.log('Sticky message posted on startup');
-    } catch (err) {
-      console.error('Error sending sticky message on startup:', err);
+  // On ready, fetch the sticky channel's messages to try to find existing sticky message
+  try {
+    const channel = await client.channels.fetch(STICKY_CHANNEL_ID);
+    if (channel && channel.isTextBased()) {
+      const messages = await channel.messages.fetch({ limit: 20 });
+      const stickyMsg = messages.find(msg => msg.content === STICKY_MESSAGE_CONTENT);
+      if (stickyMsg) {
+        currentStickyMessage = stickyMsg;
+        lastStickyMessageId = stickyMsg.id;
+      } else {
+        // No sticky found, post one fresh
+        await postSticky(channel);
+      }
     }
+  } catch (err) {
+    console.error('Error fetching sticky message on ready:', err);
   }
 });
 
-// Remove old sticky message & resend every 5 minutes
-cron.schedule('*/1 * * * *', async () => {
-  const channel = client.channels.cache.get(STICKY_CHANNEL_ID);
+// Function to post a new sticky message
+async function postSticky(channel) {
   if (!channel || !channel.isTextBased()) return;
 
-  try {
-    if (lastStickyMessageId) {
-      const oldMsg = await channel.messages.fetch(lastStickyMessageId).catch(() => null);
-      if (oldMsg) await oldMsg.delete().catch(() => {});
+  // Delete the old sticky message if it exists
+  if (currentStickyMessage) {
+    try {
+      await currentStickyMessage.delete();
+      lastStickyMessageId = null;  // Reset ID because we deleted old sticky
+      currentStickyMessage = null;
+    } catch (err) {
+      console.error('Failed to delete old sticky message:', err.message);
     }
-    const newSticky = await channel.send(STICKY_MESSAGE_CONTENT);
-    lastStickyMessageId = newSticky.id;
-    console.log('Sticky message updated by cron job');
-  } catch (err) {
-    console.error('Sticky message cron error:', err);
   }
+
+  // Send a new sticky message
+  try {
+    currentStickyMessage = await channel.send(STICKY_MESSAGE_CONTENT);
+    lastStickyMessageId = currentStickyMessage.id;
+  } catch (err) {
+    console.error('Failed to send sticky message:', err.message);
+  }
+}
+
+// Watch for new messages in the sticky channel
+client.on('messageCreate', async message => {
+  if (message.channel.id !== STICKY_CHANNEL_ID) return;
+
+  // If the message is the sticky content and not the currently tracked sticky message, update tracking
+  if (message.content === STICKY_MESSAGE_CONTENT) {
+    if (message.id !== lastStickyMessageId) {
+      lastStickyMessageId = message.id;
+      currentStickyMessage = message;
+      return; // Don't repost sticky message if already present
+    }
+  }
+
+  // Ignore the current sticky message itself
+  if (message.id === lastStickyMessageId) return;
+
+  // For any other message, repost sticky
+  await postSticky(message.channel);
 });
+
 
 client.on('guildMemberAdd', async member => {
   const welcomeChannel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
