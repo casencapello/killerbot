@@ -56,7 +56,7 @@ client.once('ready', async () => {
 });
 
 // Remove old sticky message & resend every 5 minutes
-cron.schedule('*/5 * * * *', async () => {
+cron.schedule('*/1 * * * *', async () => {
   const channel = client.channels.cache.get(STICKY_CHANNEL_ID);
   if (!channel || !channel.isTextBased()) return;
 
