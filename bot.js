@@ -111,7 +111,7 @@ client.on('guildMemberAdd', async member => {
   const welcomeChannel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
   if (welcomeChannel?.isTextBased()) {
     const welcomeMessage = await welcomeChannel.send(`👋 Welcome <@${member.id}>!`);
-    setTimeout(() => welcomeMessage.delete().catch(() => {}), 10000);
+    setTimeout(() => welcomeMessage.delete().catch(() => {}), 100000);
   }
 
   setTimeout(() => {
