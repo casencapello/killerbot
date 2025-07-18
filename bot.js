@@ -41,6 +41,7 @@ const dailyGoals = [
 ];
 const CHANNEL_TO_REVIVE = '1387906019841015818'; // replace with your actual channel ID
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const roleId = '1395170167763501167';
 
 const chatReviver = [
   "Hows everyone doing today?",
@@ -89,7 +90,7 @@ setInterval(() => {
     const channel = client.channels.cache.get(CHANNEL_TO_REVIVE);
     if (channel && channel.isTextBased()) {
       const reviveMsg = chatReviver[Math.floor(Math.random() * chatReviver.length)];
-      channel.send(reviveMsg).catch(console.error);
+      channel.send(`<@&${roleId}> ${reviveMsg}`).catch(console.error);
       lastMessageTimestamp = Date.now(); // reset timer after sending
     }
   }
