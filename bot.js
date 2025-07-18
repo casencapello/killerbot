@@ -39,6 +39,22 @@ const dailyGoals = [
   "Watch a motivational video to fire up your mindset.",
   "Find a sales accountability partner and check in today."
 ];
+const CHANNEL_TO_REVIVE = '1387906019841015818'; // replace with your actual channel ID
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+≈
+
+const chatReviver = [
+  "Hows everyone doing today?",
+  "What's one thing you're really excited about right now?",
+  "Whats a recent win for you",
+  "For setters and closers, How did your last call go?",
+  "For affiliates, what part of the conversation do you struggle with most?",
+  "What's a skill you're trying to improve?",
+  "What does the ideal call look like for you",
+  "What's a goal you're working towards right now?",
+  "What's a piece of advice you'd give to someone just starting out?",
+];
+let lastMessageTimestamp = Date.now();
 
 client.once('ready', async () => {
   console.log(`✅ Bot is online as ${client.user.tag}`);
@@ -61,6 +77,24 @@ client.once('ready', async () => {
     console.error('Error fetching sticky message on ready:', err);
   }
 });
+client.on('messageCreate', message => {
+  if (message.channel.id === CHANNEL_TO_REVIVE && !message.author.bot) {
+    lastMessageTimestamp = Date.now();
+  }
+});
+
+// Check for inactivity
+setInterval(() => {
+  const now = Date.now();
+  if (now - lastMessageTimestamp >= INACTIVITY_TIMEOUT) {
+    const channel = client.channels.cache.get(CHANNEL_TO_REVIVE);
+    if (channel && channel.isTextBased()) {
+      const reviveMsg = chatReviver[Math.floor(Math.random() * chatReviver.length)];
+      channel.send(reviveMsg).catch(console.error);
+      lastMessageTimestamp = Date.now(); // reset timer after sending
+    }
+  }
+}, 60 * 1000); // check every 1 min
 
 // Function to post a new sticky message
 async function postSticky(channel) {
