@@ -40,7 +40,7 @@ const dailyGoals = [
   "Find a sales accountability partner and check in today."
 ];
 const CHANNEL_TO_REVIVE = '1387906019841015818'; // replace with your actual channel ID
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 30 minutes
 const roleId = '1395170167763501167';
 
 const chatReviver = [
