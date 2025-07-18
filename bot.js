@@ -41,7 +41,6 @@ const dailyGoals = [
 ];
 const CHANNEL_TO_REVIVE = '1387906019841015818'; // replace with your actual channel ID
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-≈
 
 const chatReviver = [
   "Hows everyone doing today?",
