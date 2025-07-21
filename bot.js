@@ -82,19 +82,17 @@ client.on('messageCreate', message => {
     lastMessageTimestamp = Date.now();
   }
 });
-
-// Check for inactivity
-setInterval(() => {
-  const now = Date.now();
-  if (now - lastMessageTimestamp >= INACTIVITY_TIMEOUT) {
-    const channel = client.channels.cache.get(CHANNEL_TO_REVIVE);
-    if (channel && channel.isTextBased()) {
-      const reviveMsg = chatReviver[Math.floor(Math.random() * chatReviver.length)];
-      channel.send(`<@&${roleId}> ${reviveMsg}`).catch(console.error);
-      lastMessageTimestamp = Date.now(); // reset timer after sending
-    }
+// Send chat revive messages twice a day
+cron.schedule('0 10,18 * * *', async () => {
+  const channel = client.channels.cache.get(CHANNEL_TO_REVIVE);
+  if (channel && channel.isTextBased()) {
+    const reviveMsg = chatReviver[Math.floor(Math.random() * chatReviver.length)];
+    channel.send(`<@&${roleId}> ${reviveMsg}`).catch(console.error);
   }
-}, 60 * 1000); // check every 1 min
+}, {
+  timezone: 'America/Chicago'
+});
+
 
 // Function to post a new sticky message
 async function postSticky(channel) {
